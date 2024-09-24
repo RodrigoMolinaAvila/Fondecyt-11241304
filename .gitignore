@@ -3,12 +3,11 @@
 *.csv
 *.xlsx
 
-
 # Ignorar archivos temporales de R
 *.RDataTmp
 
-# Ignorar archivos grandes específicos
-NetworkAuthorship/.RDataTmp
+# Ignorar completamente la carpeta NetworkAuthorship
+NetworkAuthorship/
 
 # Ignorar archivos de sistema
 .DS_Store
@@ -44,23 +43,3 @@ build/
 *.orc
 *.hdf5
 *.h5
-*.mat
-*.sqlite
-*.db
-*.db3
-*.sql
-*.bak
-*.dmp
-*.rda
-*.rds
-*.feather
-*.arrow
-*.sas7bdat
-*.sav
-*.dta
-*.por
-*.xpt
-
-NetworkAuthorship/
-
-NetworkAuthorship/

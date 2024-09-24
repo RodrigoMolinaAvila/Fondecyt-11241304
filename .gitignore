@@ -1,6 +1,7 @@
 *.pdf
 *.doc
 *.csv
+*.xlsx
 # Ignorar archivos temporales de R
 *.RDataTmp
 
@@ -58,4 +59,4 @@ build/
 *.por
 *.xpt
 
-NetworkAuthorship/*.xlsx
+NetworkAuthorship/*.xlsx .docx

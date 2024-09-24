@@ -1,3 +1,60 @@
 *.pdf
 *.doc
 *.csv
+# Ignorar archivos temporales de R
+*.RDataTmp
+
+# Ignorar archivos grandes específicos
+NetworkAuthorship/.RDataTmp
+
+# Ignorar archivos de sistema
+.DS_Store
+Thumbs.db
+
+# Ignorar archivos de configuración de IDE
+.vscode/
+.idea/
+
+# Ignorar archivos de compilación
+node_modules/
+dist/
+build/
+
+# Ignorar archivos de logs
+*.log
+
+# Ignorar archivos de imágenes grandes
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.bmp
+*.tiff
+
+# Ignorar archivos de datos grandes
+*.csv
+*.tsv
+*.json
+*.xml
+*.parquet
+*.avro
+*.orc
+*.hdf5
+*.h5
+*.mat
+*.sqlite
+*.db
+*.db3
+*.sql
+*.bak
+*.dmp
+*.rda
+*.rds
+*.feather
+*.arrow
+*.sas7bdat
+*.sav
+*.dta
+*.por
+*.xpt
+

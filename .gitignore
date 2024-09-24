@@ -59,6 +59,6 @@ build/
 *.por
 *.xpt
 
-NetworkAuthorship/*.xlsx .docx
+NetworkAuthorship/
 
 NetworkAuthorship/

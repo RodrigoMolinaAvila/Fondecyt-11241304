@@ -60,3 +60,5 @@ build/
 *.xpt
 
 NetworkAuthorship/*.xlsx .docx
+
+NetworkAuthorship/

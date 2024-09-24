@@ -2,6 +2,8 @@
 *.doc
 *.csv
 *.xlsx
+
+
 # Ignorar archivos temporales de R
 *.RDataTmp
 

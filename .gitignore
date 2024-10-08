@@ -44,3 +44,6 @@ build/
 *.orc
 *.hdf5
 *.h5
+
+# Ignorar el script test.py en la carpeta Scopus
+Scopus/test.py

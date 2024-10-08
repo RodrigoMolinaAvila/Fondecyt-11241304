@@ -31,10 +31,10 @@ maestra <- maestra %>%
     comb_6 = paste(Segundo_Nombre, Primer_Nombre, Apellido_Materno, Apellido_Paterno),
     comb_7 = paste(Segundo_Nombre, Apellido_Paterno, Apellido_Materno),
     comb_8 = paste(Segundo_Nombre, Apellido_Materno, Apellido_Paterno),
-    comb_9 = paste(Primer_Nombre, Segundo_Nombre, Apellido_Materno),  # Nueva combinación
-    comb_10 = paste(Segundo_Nombre, Primer_Nombre, Apellido_Materno), # Nueva combinación
-    comb_11 = paste(Primer_Nombre, Segundo_Nombre, Apellido_Paterno), # Nueva combinación
-    comb_12 = paste(Segundo_Nombre, Primer_Nombre, Apellido_Paterno)  # Nueva combinación
+    comb_9 = paste(Primer_Nombre, Segundo_Nombre, Apellido_Materno),  
+    comb_10 = paste(Segundo_Nombre, Primer_Nombre, Apellido_Materno), 
+    comb_11 = paste(Primer_Nombre, Segundo_Nombre, Apellido_Paterno), 
+    comb_12 = paste(Segundo_Nombre, Primer_Nombre, Apellido_Paterno)  
   )
 
 # Modificar la función hacer_join para aceptar relaciones muchos a muchos

@@ -3,13 +3,13 @@ library(dplyr)
 library(stringr)
 
 # Cargar las dos hojas Excel desde el directorio especificado
-maestra <- read_excel("C:/Users/rodri/OneDrive/Escritorio/Roxana Files/bases_maestra_complementada.xlsx")
-anid <- read_excel("C:/Users/rodri/OneDrive/Escritorio/Roxana Files/BDH_HISTORICA.xlsx")
+maestra <- read_excel("C:/Users/rodri/OneDrive/Escritorio/Roxana Files/Add databases/bases_maestra_complementada.xlsx")
+anid <- read_excel("C:/Users/rodri/OneDrive/Escritorio/Roxana Files/Add databases/BDH_HISTORICA.xlsx")
 
 # Filtrar los datos de la base ANID según los criterios indicados
 anid_filtrada <- anid %>%
   filter(PROGRAMA == "FONDECYT", 
-         INSTRUMENTO %in% c("REGULAR", "POSTDOCTORADO"),
+         INSTRUMENTO %in% c("REGULAR", "POSTDOCTORADO", "INICIACION"),
          AGNO_FALLO %in% 2014:2024)
 
 # Normalizar nombres a mayúsculas en ambas bases y limpiar espacios
@@ -31,10 +31,10 @@ maestra <- maestra %>%
     comb_6 = paste(Segundo_Nombre, Primer_Nombre, Apellido_Materno, Apellido_Paterno),
     comb_7 = paste(Segundo_Nombre, Apellido_Paterno, Apellido_Materno),
     comb_8 = paste(Segundo_Nombre, Apellido_Materno, Apellido_Paterno),
-    comb_9 = paste(Primer_Nombre, Segundo_Nombre, Apellido_Materno),  # Nueva combinación
-    comb_10 = paste(Segundo_Nombre, Primer_Nombre, Apellido_Materno), # Nueva combinación
-    comb_11 = paste(Primer_Nombre, Segundo_Nombre, Apellido_Paterno), # Nueva combinación
-    comb_12 = paste(Segundo_Nombre, Primer_Nombre, Apellido_Paterno)  # Nueva combinación
+    comb_9 = paste(Primer_Nombre, Segundo_Nombre, Apellido_Materno),  
+    comb_10 = paste(Segundo_Nombre, Primer_Nombre, Apellido_Materno), 
+    comb_11 = paste(Primer_Nombre, Segundo_Nombre, Apellido_Paterno), 
+    comb_12 = paste(Segundo_Nombre, Primer_Nombre, Apellido_Paterno)  
   )
 
 # Modificar la función hacer_join para aceptar relaciones muchos a muchos

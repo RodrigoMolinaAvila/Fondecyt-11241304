@@ -3,13 +3,13 @@ library(dplyr)
 library(stringr)
 
 # Cargar las dos hojas Excel desde el directorio especificado
-maestra <- read_excel("C:/Users/rodri/OneDrive/Escritorio/Roxana Files/bases_maestra_complementada.xlsx")
-anid <- read_excel("C:/Users/rodri/OneDrive/Escritorio/Roxana Files/BDH_HISTORICA.xlsx")
+maestra <- read_excel("C:/Users/rodri/OneDrive/Escritorio/Roxana Files/Add databases/bases_maestra_complementada.xlsx")
+anid <- read_excel("C:/Users/rodri/OneDrive/Escritorio/Roxana Files/Add databases/BDH_HISTORICA.xlsx")
 
 # Filtrar los datos de la base ANID según los criterios indicados
 anid_filtrada <- anid %>%
   filter(PROGRAMA == "FONDECYT", 
-         INSTRUMENTO %in% c("REGULAR", "POSTDOCTORADO"),
+         INSTRUMENTO %in% c("REGULAR", "POSTDOCTORADO", "INICIACION"),
          AGNO_FALLO %in% 2014:2024)
 
 # Normalizar nombres a mayúsculas en ambas bases y limpiar espacios

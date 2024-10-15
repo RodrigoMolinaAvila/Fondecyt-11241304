@@ -45,8 +45,6 @@ build/
 *.hdf5
 *.h5
 
-# Ignorar el script test.py en la carpeta Scopus
-Scopus/Scopus.py
 
 # Ignorar el script scopus.py en cualquier ubicación
 scopus.py

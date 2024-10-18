@@ -48,3 +48,5 @@ build/
 
 # Ignorar el script scopus.py en cualquier ubicación
 Scopus.py
+
+Scopus/Scopus.py

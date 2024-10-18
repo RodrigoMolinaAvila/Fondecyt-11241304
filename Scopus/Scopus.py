@@ -14,8 +14,18 @@ headers = {
 
 # Función para buscar autores en Scopus usando apellido y nombre en la consulta
 def buscar_autor_por_nombre(nombre, apellido):
-    # URL con la estructura que mencionas, donde buscamos por apellido y nombre
-    url = f"https://api.elsevier.com/content/search/author?query=authlast({apellido})%20and%20authfirst({nombre})"
+    # URL con todos los campos posibles a extraer
+    url = (f"https://api.elsevier.com/content/search/author?"
+           f"query=authlast({apellido})%20and%20authfirst({nombre})"
+           f"&field=dc:identifier,eid,orcid,document-count,subject-area,"
+           f"preferred-name,surname,given-name,initials,name-variant,"
+           f"affiliation-current.affiliation-name,affiliation-current.affiliation-city,"
+           f"affiliation-current.affiliation-country,affiliation-current.affiliation-id,"
+           f"affiliation-current.affiliation-url,"
+           f"affiliation-history.affiliation-name,"
+           f"affiliation-history.affiliation-country,"
+           f"affiliation-history.affiliation-id,"
+           f"coauthor-count")  # Incluye el campo de coautoría
     
     # Hacer la solicitud a la API de Scopus
     response = requests.get(url, headers=headers)
@@ -31,25 +41,37 @@ def buscar_autor_por_nombre(nombre, apellido):
                 eid = autor.get('eid', '')
                 orcid = autor.get('orcid', '')
                 numero_publicaciones = autor.get('document-count', 0)
-                cited_by_count = autor.get('cited-by-count', 0)
-                citation_count = autor.get('citation-count', 0)
+                cited_by_count = autor.get('cited-by-count', 0)  # Puede no estar siempre presente
+                citation_count = autor.get('citation-count', 0)  # Puede no estar siempre presente
+                
+                # Información sobre la afiliación actual
                 afiliacion_actual = autor.get('affiliation-current', {}).get('affiliation-name', '')
-                pais_afiliacion = autor.get('affiliation-current', {}).get('affiliation-country', '')
-                nombre_completo_scopus = autor.get('preferred-name', {}).get('given-name', '') + ' ' + autor.get('preferred-name', {}).get('surname', '')
+                afiliacion_ciudad = autor.get('affiliation-current', {}).get('affiliation-city', '')
+                afiliacion_pais = autor.get('affiliation-current', {}).get('affiliation-country', '')
+                afiliacion_id = autor.get('affiliation-current', {}).get('affiliation-id', '')
+                afiliacion_url = autor.get('affiliation-current', {}).get('affiliation-url', '')
 
-                # Rango de publicación
-                publication_range_start = autor.get('publication-range', {}).get('start', '')
-                publication_range_end = autor.get('publication-range', {}).get('end', '')
+                # Historial de afiliaciones
+                historial_afiliaciones = ", ".join(
+                    [afiliacion.get('affiliation-name', '') for afiliacion in autor.get('affiliation-history', {}).get('affiliation', [])])
+                historial_paises = ", ".join(
+                    [afiliacion.get('affiliation-country', '') for afiliacion in autor.get('affiliation-history', {}).get('affiliation', [])])
 
-                # Áreas temáticas, manejo del caso en que subject-area no sea una lista/dict
+                # Coautoría (número de coautores)
+                numero_coautores = autor.get('coauthor-count', 0)
+
+                # Áreas temáticas
                 subject_areas = autor.get('subject-area', [])
                 if isinstance(subject_areas, list):
                     areas_tematicas = ", ".join([area.get('subject-area', {}).get('$', '') for area in subject_areas])
                 else:
-                    areas_tematicas = ''  # Si no hay áreas temáticas o el formato es incorrecto
+                    areas_tematicas = ''
 
-                # Historial de afiliaciones
-                historial_afiliaciones = ", ".join([afiliacion.get('affiliation-name', '') for afiliacion in autor.get('affiliation-history', {}).get('affiliation', [])])
+                # Nombres completos y variantes
+                nombre_completo_scopus = autor.get('preferred-name', {}).get('given-name', '') + ' ' + autor.get('preferred-name', {}).get('surname', '')
+                iniciales = autor.get('preferred-name', {}).get('initials', '')
+                variantes_nombre = ", ".join(
+                    [variante.get('given-name', '') + ' ' + variante.get('surname', '') for variante in autor.get('name-variant', [])])
 
                 # Añadir los resultados
                 resultados.append({
@@ -60,12 +82,17 @@ def buscar_autor_por_nombre(nombre, apellido):
                     'cited_by_count': cited_by_count,
                     'citation_count': citation_count,
                     'afiliacion_actual': afiliacion_actual,
-                    'pais_afiliacion': pais_afiliacion,
-                    'nombre_completo_scopus': nombre_completo_scopus,
-                    'publication_range_start': publication_range_start,
-                    'publication_range_end': publication_range_end,
-                    'areas_tematicas': areas_tematicas,
+                    'afiliacion_ciudad': afiliacion_ciudad,
+                    'afiliacion_pais': afiliacion_pais,
+                    'afiliacion_id': afiliacion_id,
+                    'afiliacion_url': afiliacion_url,
                     'historial_afiliaciones': historial_afiliaciones,
+                    'historial_paises': historial_paises,
+                    'numero_coautores': numero_coautores,
+                    'areas_tematicas': areas_tematicas,
+                    'nombre_completo_scopus': nombre_completo_scopus,
+                    'iniciales': iniciales,
+                    'variantes_nombre': variantes_nombre,
                     'nombre_busqueda': f"{nombre} {apellido}"  # Para saber qué nombre generó el resultado
                 })
             return pd.DataFrame(resultados)
@@ -93,8 +120,8 @@ file_path = r'C:\Users\Rodrigo\Desktop\Roxana Files\Scopus\maestra.xlsx'
 df_base_maestra = pd.read_excel(file_path, sheet_name='BaseMaestra')
 
 # Parámetros de control
-realizar_todas = True  # Cambiar a True para procesar todos los registros
-num_solicitudes = 15  # Número de solicitudes a realizar (solo si realizar_todas es False)
+realizar_todas = False  # Cambiar a True para procesar todos los registros
+num_solicitudes = 5  # Número de solicitudes a realizar (solo si realizar_todas es False)
 tiempo_pausa = 1  # Pausa entre cada solicitud (en segundos)
 
 # Determinar el número de registros a procesar
@@ -132,8 +159,8 @@ for index, row in df_base_maestra.iterrows():
 if resultados_busqueda:
     df_resultados_finales = pd.concat(resultados_busqueda, ignore_index=True)
     
-    # Guardar los resultados en un archivo Excel
-    df_resultados_finales.to_excel("scopus_resultados.xlsx", index=False)
-    print(f"Resultados guardados en 'scopus_resultados.xlsx'. Total de solicitudes realizadas: {total_solicitudes}")
+    # Guardar los resultados en un archivo CSV
+    df_resultados_finales.to_csv("scopus_resultados.csv", index=False)
+    print(f"Resultados guardados en 'scopus_resultados.csv'. Total de solicitudes realizadas: {total_solicitudes}")
 else:
     print("No se encontraron resultados.")

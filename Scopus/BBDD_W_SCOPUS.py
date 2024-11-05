@@ -38,42 +38,44 @@ df_maestra = df_maestra.assign(
     comb_10=df_maestra['Primer_Nombre'] + " " + df_maestra['Apellido_Paterno'],
     comb_11=df_maestra['Segundo_Nombre'] + " " + df_maestra['Apellido_Paterno'],
     comb_12=df_maestra['Primer_Nombre'] + " " + df_maestra['Apellido_Materno'],
-    comb_13=df_maestra['Segundo_Nombre'] + " " + df_maestra['Apellido_Materno']
+    comb_13=df_maestra['Segundo_Nombre'] + " " + df_maestra['Apellido_Materno'],
+    # Nuevas combinaciones con iniciales
+    comb_14=df_maestra['Primer_Nombre'].str[0] + ". " + df_maestra['Segundo_Nombre'].str[0].fillna('') + ". " + df_maestra['Apellido_Paterno'] + " " + df_maestra['Apellido_Materno'],
+    comb_15=df_maestra['Primer_Nombre'].str[0] + ". " + df_maestra['Apellido_Paterno'] + " " + df_maestra['Apellido_Materno']
 )
 
 # Inicializar un DataFrame vacío para almacenar los resultados del merge
 df_merged_comb = pd.DataFrame()
 
-# Realizar el merge con cada combinación de nombres
-for col in ['comb_1', 'comb_2', 'comb_3', 'comb_4', 'comb_5', 'comb_6', 'comb_7', 'comb_8', 'comb_9', 'comb_10', 'comb_11', 'comb_12', 'comb_13']:
+# Realizar el merge con cada combinación de nombres y añadir el identificador único para el nombre de la base maestra
+df_maestra['ID_interno'] = pd.factorize(df_maestra['NOMBRE'])[0] + 1
+
+for col in ['comb_1', 'comb_2', 'comb_3', 'comb_4', 'comb_5', 'comb_6', 'comb_7', 'comb_8', 'comb_9', 
+            'comb_10', 'comb_11', 'comb_12', 'comb_13', 'comb_14', 'comb_15']:
     temp_merged = pd.merge(df_maestra, df_scopus, how='left', left_on=col, right_on='nombre_completo_scopus')
     
     # Filtrar y priorizar registros que tienen Scopus ID válido
     temp_merged_valid_scopus = temp_merged[temp_merged['scopus_id'].notna()]
     
-    # Concatena el DataFrame temporal con los resultados de merge previos
+    # Concatenar el DataFrame temporal con los resultados de merge previos
     df_merged_comb = pd.concat([df_merged_comb, temp_merged_valid_scopus], ignore_index=True)
 
 # Eliminar duplicados si es necesario
-df_merged_comb.drop_duplicates(subset=['FOLIO', 'nombre_completo_scopus'], inplace=True)
-
-# Generar un identificador único para cada nombre entregado
-df_merged_comb['ID_interno'] = pd.factorize(df_merged_comb['NOMBRE'])[0] + 1
+df_merged_comb.drop_duplicates(subset=['ID_interno', 'nombre_completo_scopus'], inplace=True)
 
 # Definir un nuevo DataFrame estructurado con las columnas deseadas
 df_final_output = pd.DataFrame({
     'ID interno': df_merged_comb['ID_interno'],
-    'Nombre entregado': df_merged_comb['NOMBRE'],
-    'Nombre consultado': df_merged_comb['nombre_completo_scopus'],
-    'Modificación segunda iteración': '',  # Columna que puedes completar manualmente si es necesario
+    'Nombre entregado desde BBDD MAESTRA': df_merged_comb['NOMBRE'],
+    'Nombre consultado en Scopus': df_merged_comb['nombre_completo_scopus'],
+    'Match exacto': (df_merged_comb['NOMBRE'] == df_merged_comb['nombre_completo_scopus']).astype(int),
     'Número de coincidencias': df_merged_comb.groupby('ID_interno')['nombre_completo_scopus'].transform('count'),
-    'Variantes del nombre': df_merged_comb['nombre_completo_scopus'],
     'Identificador Scopus': df_merged_comb['scopus_id'],
     'Orcid': df_merged_comb['orcid'],
     'Número de publicaciones': df_merged_comb['numero_publicaciones'],
-    'Pregrado Final': df_merged_comb['Pregrado Final'],  # Información de la base maestra
     'UNIVERSIDAD_PROGRAMA': df_merged_comb['UNIVERSIDAD_PROGRAMA'],  # Información de la base maestra
-    'Pertenece o no': (df_merged_comb['pais_afiliacion'] == 'Chile').astype(int),  # Si pertenece a Chile es 1, de lo contrario 0
+    'Pregrado Final': df_merged_comb['Pregrado Final'],  # Información de la base maestra
+    'Pertenece o no': (df_merged_comb['pais_afiliacion'] == 'Chile').astype(int),
     'Pais de afiliación': df_merged_comb['pais_afiliacion']
 })
 

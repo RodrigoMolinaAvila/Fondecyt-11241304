@@ -12,8 +12,8 @@ def normalizar_nombre(nombre):
     return nombre.strip()
 
 # Cargar los archivos (Base maestra desde la hoja "BaseMaestra" y Scopus)
-df_maestra = pd.read_excel(r'C:\Users\rodri\OneDrive\Escritorio\Roxana Files\Scopus\maestra.xlsx', sheet_name='BaseMaestra')
-df_scopus = pd.read_excel(r'C:\Users\rodri\OneDrive\Escritorio\Roxana Files\Scopus\scopus_resultados_beta.xlsx')
+df_maestra = pd.read_excel(r'.\Scopus\maestra.xlsx', sheet_name='BaseMaestra')
+df_scopus = pd.read_excel(r'.\Scopus\scopus_resultados_beta.xlsx')
 
 # Aplicar la normalización en la base maestra
 df_maestra['Primer_Nombre'] = df_maestra['Primer_Nombre'].apply(normalizar_nombre)

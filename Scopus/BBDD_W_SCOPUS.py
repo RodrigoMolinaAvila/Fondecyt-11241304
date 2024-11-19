@@ -1,4 +1,3 @@
-# Librerías necesarias
 import pandas as pd
 import unicodedata
 
@@ -8,97 +7,130 @@ def normalizar_nombre(nombre):
         return ""
     nombre = nombre.upper()
     nombre = ''.join(c for c in unicodedata.normalize('NFKD', nombre) if unicodedata.category(c) != 'Mn')
-    nombre = nombre.replace("-", " ")  # Reemplazar guiones por espacios
-    return nombre.strip()
+    return nombre.replace("-", " ").strip()
 
-# Cargar los archivos (Base maestra desde la hoja "BaseMaestra" y Scopus)
-df_maestra = pd.read_excel(r'C:\Users\rodri\OneDrive\Escritorio\Roxana Files\Scopus\maestra.xlsx', sheet_name='BaseMaestra')
-df_scopus = pd.read_excel(r'C:\Users\rodri\OneDrive\Escritorio\Roxana Files\Scopus\scopus_resultados_beta.xlsx')
+# Cargar las bases de datos
+df_maestra = pd.read_excel('./Scopus/maestra_procesada.xlsx')
+df_scopus = pd.read_excel('./Scopus/scopus_resultados_beta.xlsx')
 
-# Aplicar la normalización en la base maestra
+# Normalizar nombres y afiliaciones en ambas bases de datos
 df_maestra['Primer_Nombre'] = df_maestra['Primer_Nombre'].apply(normalizar_nombre)
 df_maestra['Segundo_Nombre'] = df_maestra['Segundo_Nombre'].apply(normalizar_nombre)
 df_maestra['Apellido_Paterno'] = df_maestra['Apellido_Paterno'].apply(normalizar_nombre)
 df_maestra['Apellido_Materno'] = df_maestra['Apellido_Materno'].apply(normalizar_nombre)
+df_maestra['UNIVERSIDAD_PROGRAMA'] = df_maestra['UNIVERSIDAD_PROGRAMA'].apply(normalizar_nombre)
+df_maestra['Pregrado Final'] = df_maestra['Pregrado Final'].apply(normalizar_nombre)
 
-# Aplicar la normalización en la base Scopus
 df_scopus['nombre_completo_scopus'] = df_scopus['nombre_completo_scopus'].apply(normalizar_nombre)
+df_scopus['afiliacion_actual'] = df_scopus['afiliacion_actual'].apply(normalizar_nombre)
 
-# Crear combinaciones de nombres en la base maestra
-df_maestra = df_maestra.assign(
-    comb_1=df_maestra['Primer_Nombre'] + " " + df_maestra['Segundo_Nombre'] + " " + df_maestra['Apellido_Paterno'] + " " + df_maestra['Apellido_Materno'],
-    comb_2=df_maestra['Primer_Nombre'] + " " + df_maestra['Apellido_Paterno'] + " " + df_maestra['Apellido_Materno'],
-    comb_3=df_maestra['Segundo_Nombre'] + " " + df_maestra['Apellido_Paterno'] + " " + df_maestra['Apellido_Materno'],
-    comb_4=df_maestra['Primer_Nombre'] + " " + df_maestra['Segundo_Nombre'] + " " + df_maestra['Apellido_Materno'] + " " + df_maestra['Apellido_Paterno'],
-    comb_5=df_maestra['Primer_Nombre'] + " " + df_maestra['Apellido_Materno'] + " " + df_maestra['Apellido_Paterno'],
-    comb_6=df_maestra['Segundo_Nombre'] + " " + df_maestra['Apellido_Materno'] + " " + df_maestra['Apellido_Paterno'],
-    comb_7=df_maestra['Segundo_Nombre'] + " " + df_maestra['Primer_Nombre'] + " " + df_maestra['Apellido_Paterno'] + " " + df_maestra['Apellido_Materno'],
-    comb_8=df_maestra['Primer_Nombre'] + " " + df_maestra['Segundo_Nombre'],
-    comb_9=df_maestra['Segundo_Nombre'] + " " + df_maestra['Primer_Nombre'],
-    comb_10=df_maestra['Primer_Nombre'] + " " + df_maestra['Apellido_Paterno'],
-    comb_11=df_maestra['Segundo_Nombre'] + " " + df_maestra['Apellido_Paterno'],
-    comb_12=df_maestra['Primer_Nombre'] + " " + df_maestra['Apellido_Materno'],
-    comb_13=df_maestra['Segundo_Nombre'] + " " + df_maestra['Apellido_Materno'],
-    # Nuevas combinaciones con iniciales
-    comb_14=df_maestra['Primer_Nombre'].str[0] + ". " + df_maestra['Segundo_Nombre'].str[0].fillna('') + ". " + df_maestra['Apellido_Paterno'] + " " + df_maestra['Apellido_Materno'],
-    comb_15=df_maestra['Primer_Nombre'].str[0] + ". " + df_maestra['Apellido_Paterno'] + " " + df_maestra['Apellido_Materno']
-)
-
-# Inicializar un DataFrame vacío para almacenar los resultados del merge
-df_merged_comb = pd.DataFrame()
-
-# Realizar el merge con cada combinación de nombres y añadir el identificador único para el nombre de la base maestra
+# Generar un identificador único para cada nombre en la base maestra
 df_maestra['ID_interno'] = pd.factorize(df_maestra['NOMBRE'])[0] + 1
 
-for col in ['comb_1', 'comb_2', 'comb_3', 'comb_4', 'comb_5', 'comb_6', 'comb_7', 'comb_8', 'comb_9', 
-            'comb_10', 'comb_11', 'comb_12', 'comb_13', 'comb_14', 'comb_15']:
-    temp_merged = pd.merge(df_maestra, df_scopus, how='left', left_on=col, right_on='nombre_completo_scopus')
+# Inicializar DataFrame para almacenar resultados de matches
+resultados_matches = []
+
+# Iterar sobre cada registro de la base maestra y buscar coincidencias en Scopus
+for _, row in df_maestra.iterrows():
+    encontrado = False
     
-    # Filtrar y priorizar registros que tienen Scopus ID válido
-    temp_merged_valid_scopus = temp_merged[temp_merged['scopus_id'].notna()]
+    # Filtrar los registros de Scopus que podrían coincidir
+    df_scopus_match = df_scopus[
+        (df_scopus['nombre_completo_scopus'].str.contains(row['Primer_Nombre'])) &
+        (df_scopus['nombre_completo_scopus'].str.contains(row['Apellido_Paterno']))
+    ]
     
-    # Concatenar el DataFrame temporal con los resultados de merge previos
-    df_merged_comb = pd.concat([df_merged_comb, temp_merged_valid_scopus], ignore_index=True)
+    # Verificar coincidencia con afiliación y detalles de nombres
+    for _, scopus_row in df_scopus_match.iterrows():
+        # Determinar coincidencia de cada componente del nombre
+        coincidencias_nombre = {
+            'primer_nombre': int(row['Primer_Nombre'] in scopus_row['nombre_completo_scopus']),
+            'segundo_nombre': int(row['Segundo_Nombre'] in scopus_row['nombre_completo_scopus']),
+            'apellido_paterno': int(row['Apellido_Paterno'] in scopus_row['nombre_completo_scopus']),
+            'apellido_materno': int(row['Apellido_Materno'] in scopus_row['nombre_completo_scopus'])
+        }
+        
+        # Determinar coincidencia en afiliaciones
+        coincidencia_afiliacion = {
+            'universidad_programa': int(row['UNIVERSIDAD_PROGRAMA'] in scopus_row['afiliacion_actual']),
+            'pregrado_final': int(row['Pregrado Final'] in scopus_row['afiliacion_actual'])
+        }
+        
+        # Calcular puntajes
+        puntaje_nombre = sum(coincidencias_nombre.values())   # Puntaje basado en coincidencia de nombre
+        puntaje_afiliacion = sum(coincidencia_afiliacion.values())  # Puntaje basado en coincidencia de afiliación
+        puntaje_total = puntaje_nombre + puntaje_afiliacion  # Puntaje total
 
-# Eliminar duplicados si es necesario
-df_merged_comb.drop_duplicates(subset=['ID_interno', 'nombre_completo_scopus'], inplace=True)
+        # Clasificación del tipo de match en base al puntaje total
+        tipo_match = "Exacto" if puntaje_total == 6 else "Parcial"
+        
+        # Guardar los detalles de la coincidencia
+        resultados_matches.append({
+            'ID_interno': row['ID_interno'],
+            'Nombre BBDD Maestra': row['NOMBRE'],
+            'Nombre Scopus': scopus_row['nombre_completo_scopus'],
+            'Afiliación Scopus': scopus_row['afiliacion_actual'],
+            'Identificador Scopus': scopus_row['scopus_id'],
+            'Orcid': scopus_row['orcid'],
+            'Número de publicaciones': scopus_row['numero_publicaciones'],
+            'UNIVERSIDAD_PROGRAMA': row['UNIVERSIDAD_PROGRAMA'],
+            'Pregrado Final': row['Pregrado Final'],
+            'Tipo de Match': tipo_match,
+            'Coincidencia Nombre': coincidencias_nombre,
+            'Coincidencia Afiliación': coincidencia_afiliacion,
+            'Puntaje Nombre': puntaje_nombre,
+            'Puntaje Afiliación': puntaje_afiliacion,
+            'Puntaje Total': puntaje_total,
+            'Pertenece o no': int(scopus_row['pais_afiliacion'] == 'Chile'),
+            'Pais de afiliación': scopus_row['pais_afiliacion']
+        })
+        encontrado = True
 
-# Definir un nuevo DataFrame estructurado con las columnas deseadas
-df_final_output = pd.DataFrame({
-    'ID interno': df_merged_comb['ID_interno'],
-    'Nombre entregado desde BBDD MAESTRA': df_merged_comb['NOMBRE'],
-    'Nombre consultado en Scopus': df_merged_comb['nombre_completo_scopus'],
-    'Match exacto': (df_merged_comb['NOMBRE'] == df_merged_comb['nombre_completo_scopus']).astype(int),
-    'Número de coincidencias': df_merged_comb.groupby('ID_interno')['nombre_completo_scopus'].transform('count'),
-    'Identificador Scopus': df_merged_comb['scopus_id'],
-    'Orcid': df_merged_comb['orcid'],
-    'Número de publicaciones': df_merged_comb['numero_publicaciones'],
-    'UNIVERSIDAD_PROGRAMA': df_merged_comb['UNIVERSIDAD_PROGRAMA'],  # Información de la base maestra
-    'Pregrado Final': df_merged_comb['Pregrado Final'],  # Información de la base maestra
-    'Pertenece o no': (df_merged_comb['pais_afiliacion'] == 'Chile').astype(int),
-    'Pais de afiliación': df_merged_comb['pais_afiliacion']
-})
+    # Si no hay coincidencias, registrar como "No encontrado"
+    if not encontrado:
+        resultados_matches.append({
+            'ID_interno': row['ID_interno'],
+            'Nombre BBDD Maestra': row['NOMBRE'],
+            'Nombre Scopus': 'No encontrado',
+            'Afiliación Scopus': 'N/A',
+            'Identificador Scopus': 'N/A',
+            'Orcid': 'N/A',
+            'Número de publicaciones': 'N/A',
+            'UNIVERSIDAD_PROGRAMA': row['UNIVERSIDAD_PROGRAMA'],
+            'Pregrado Final': row['Pregrado Final'],
+            'Tipo de Match': 'No encontrado',
+            'Coincidencia Nombre': {'primer_nombre': 0, 'segundo_nombre': 0, 'apellido_paterno': 0, 'apellido_materno': 0},
+            'Coincidencia Afiliación': {'universidad_programa': 0, 'pregrado_final': 0},
+            'Puntaje Nombre': 0,
+            'Puntaje Afiliación': 0,
+            'Puntaje Total': 0,
+            'Pertenece o no': 'N/A',
+            'Pais de afiliación': 'N/A'
+        })
 
-# Mostrar el nuevo DataFrame con el output deseado
-print("Primeras filas del nuevo output:")
-print(df_final_output.head())
+# Convertir resultados a DataFrame
+df_resultados = pd.DataFrame(resultados_matches)
 
-# Guardar el resultado final en un archivo CSV
-output_csv_path = 'output_final.csv'
-df_final_output.to_csv(output_csv_path, index=False)
+# Filtrar resultados únicos por nombre y afiliación
+df_distinct_resultados = df_resultados[df_resultados['Nombre Scopus'] != 'No encontrado'].drop_duplicates(
+    subset=['ID_interno', 'Nombre Scopus', 'Afiliación Scopus']
+)
 
-# Guardar el resultado en un archivo XLSX
-output_xlsx_path = 'output_final.xlsx'
-df_final_output.to_excel(output_xlsx_path, index=False)
+# Separar registros encontrados y no encontrados
+df_encontrados = df_resultados[df_resultados['Nombre Scopus'] != 'No encontrado']
+df_no_encontrados = df_resultados[df_resultados['Nombre Scopus'] == 'No encontrado']
 
-print(f"Output final guardado en: {output_csv_path} y {output_xlsx_path}")
+# Guardar en un archivo Excel con múltiples hojas
+with pd.ExcelWriter("output_final_resultados.xlsx") as writer:
+    df_resultados.to_excel(writer, sheet_name="Resultados completos", index=False)
+    df_distinct_resultados.to_excel(writer, sheet_name="Resultados únicos", index=False)
+    df_no_encontrados.to_excel(writer, sheet_name="No encontrados", index=False)
 
-# Contar cuántos nombres de la base de datos maestra fueron identificados en Scopus
-nombres_identificados = df_merged_comb['nombre_completo_scopus'].nunique()
+print("Archivo con resultados guardado en 'output_final_resultados.xlsx'.")
 
-# Total de nombres en la base maestra, utilizando comb_1 como referencia del total de nombres
-total_nombres_maestra = df_maestra['comb_1'].nunique()
+# Resumen de coincidencias y porcentaje de identificación en base a los resultados únicos
+total_nombres_maestra = df_maestra['ID_interno'].nunique()
+nombres_identificados = df_distinct_resultados['ID_interno'].nunique()
 
-# Mostrar los resultados de coincidencias e identificación
 print(f"Nombres identificados en Scopus: {nombres_identificados} de {total_nombres_maestra}")
 print(f"Porcentaje de identificación: {nombres_identificados / total_nombres_maestra * 100:.2f}%")

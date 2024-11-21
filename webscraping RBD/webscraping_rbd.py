@@ -15,7 +15,7 @@ options = Options()
 options.use_chromium = True
 
 # Leer la lista de RBDs desde el archivo CSV
-rbd_list = pd.read_csv('C:/Users/Rodrigo/Desktop/Roxana Files/webscraping RBD/rbd.csv')
+rbd_list = pd.read_csv('C:/Users/Rodrigo/Desktop/Roxana Files/webscraping RBD/missing_rbds.csv')
 
 # Inicializar el navegador
 driver = webdriver.Edge(service=service, options=options)
@@ -102,4 +102,4 @@ driver.quit()
 df = pd.DataFrame(results)
 df.to_csv('C:/Users/Rodrigo/Desktop/Roxana Files/webscraping RBD/resultados.csv', index=False)
 
-print("Proceso completado. Los resultados se han guardado en 'resultados.csv'.")
+print("Proceso completado. Los resultados se han guardado en 'resultados_2iteracion.csv'.")

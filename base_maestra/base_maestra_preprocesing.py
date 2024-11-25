@@ -17,89 +17,62 @@ def estandarizar_nombre(nombre):
 
 def hacer_joins_y_consolidar(maestra, anid):
     """
-    Realiza el join para cada combinación de nombres, calcula logs,
-    conserva las variables de ANID y selecciona el proyecto más reciente.
+    Realiza el join para cada combinación de nombres, asegura que la hoja principal
+    contiene todos los nombres de la maestra, y separa proyectos adicionales.
 
     Args:
     maestra (pd.DataFrame): DataFrame de la base de datos maestra con combinaciones de nombres.
-    anid (pd.DataFrame): DataFrame completo de la base ANID.
+    anid (pd.DataFrame): DataFrame filtrado de la base ANID.
 
     Returns:
     tuple: DataFrame consolidado con la base maestra actualizada, DataFrame con detalles adicionales.
     """
     resultados = []
     
-    # Iterar sobre las combinaciones
+    # Iterar sobre las combinaciones para hacer joins
     for i in range(1, 13):
         comb_name = f'comb_{i}'
-        # Realizar el join con la combinación actual
         resultado = pd.merge(maestra, anid, how='left', left_on=comb_name, right_on='NOMBRE_RESPONSABLE')
         resultados.append(resultado)
-    
-    # Unir todos los resultados en un solo DataFrame
+
+    # Unir los resultados en un solo DataFrame y eliminar duplicados
     resultados_unidos = pd.concat(resultados, ignore_index=True).drop_duplicates()
     
-    # Añadir el total de proyectos por persona
-    resultados_unidos['numero_proyectos'] = resultados_unidos.groupby('NOMBRE_RESPONSABLE')['CODIGO_PROYECTO'].transform('count').fillna(0).astype(int)
-    
-    # Separar el proyecto más reciente
-    if 'AGNO_FALLO' in resultados_unidos.columns:
-        resultados_unidos['AGNO_FALLO'] = pd.to_numeric(resultados_unidos['AGNO_FALLO'], errors='coerce')
-        resultados_unidos = resultados_unidos.sort_values(by=['NOMBRE_RESPONSABLE', 'AGNO_FALLO'], ascending=[True, False])
-    else:
-        print("La columna 'AGNO_FALLO' no está presente en los datos.")
-    
-    # Mantener una fila por persona para la base principal
-    base_maestra_actualizada = resultados_unidos.drop_duplicates(subset='NOMBRE_RESPONSABLE', keep='first')
-
-    # Identificar las columnas comunes entre maestra y base_maestra_actualizada
-    columnas_comunes = list(set(maestra.columns) & set(base_maestra_actualizada.columns))
-    
-    # Combinar con los nombres originales de la maestra
+    # Asegurar que todos los nombres de la maestra estén presentes
     base_maestra_actualizada = pd.merge(
-        maestra,
-        base_maestra_actualizada,
-        how='left',
-        on=columnas_comunes,  # Usar solo las columnas comunes
+        maestra, 
+        resultados_unidos, 
+        how='left', 
+        on='comb_1',  # Usamos `comb_1` como referencia principal
         suffixes=('', '_drop')
     )
-    
-    # Limpiar columnas innecesarias tras el merge
+
+    # Limpiar columnas duplicadas después del merge
     base_maestra_actualizada = base_maestra_actualizada.loc[:, ~base_maestra_actualizada.columns.str.endswith('_drop')]
-    
-    # Guardar proyectos adicionales
+
+    # Separar proyectos adicionales
     proyectos_adicionales = resultados_unidos[~resultados_unidos.index.isin(base_maestra_actualizada.index)]
 
     # Renombrar columnas relevantes de ANID
-    base_maestra_actualizada = base_maestra_actualizada.copy()
-    proyectos_adicionales = proyectos_adicionales.copy()
-
-    base_maestra_actualizada.rename(columns={
+    columnas_renombradas = {
+        'PROGRAMA': 'Programa',
         'INSTRUMENTO': 'Instrumento',
         'NOMBRE_CONCURSO': 'Nombre_concurso',
         'AGNO_CONCURSO': 'Año_concurso',
         'AGNO_FALLO': 'Año_fallo',
         'NOMBRE_PROYECTO': 'Nombre_proyecto',
         'MONTO_ADJUDICADO': 'Monto_adjudicado'
-    }, inplace=True)
+    }
 
-    proyectos_adicionales.rename(columns={
-        'INSTRUMENTO': 'Instrumento',
-        'NOMBRE_CONCURSO': 'Nombre_concurso',
-        'AGNO_CONCURSO': 'Año_concurso',
-        'AGNO_FALLO': 'Año_fallo',
-        'NOMBRE_PROYECTO': 'Nombre_proyecto',
-        'MONTO_ADJUDICADO': 'Monto_adjudicado'
-    }, inplace=True)
-    
-    # Añadir la columna 'Tiene fondecyt'
-    base_maestra_actualizada['Tiene fondecyt'] = base_maestra_actualizada['CODIGO_PROYECTO'].notnull().astype(int)
-    
-    # Eliminar columnas no necesarias
-    columnas_a_eliminar = [
-        'comb_2', 'comb_3', 'comb_4', 'comb_5', 'comb_6', 'comb_7', 'comb_8',
-        'comb_9', 'comb_10', 'comb_11', 'comb_12'
-    ]
+    base_maestra_actualizada.rename(columns=columnas_renombradas, inplace=True, errors="ignore")
+    proyectos_adicionales.rename(columns=columnas_renombradas, inplace=True, errors="ignore")
+
+    # Crear la variable 'Tiene fondecyt'
+    base_maestra_actualizada['Tiene fondecyt'] = base_maestra_actualizada['Programa'].eq('FONDECYT').astype(int)
+    base_maestra_actualizada['Tiene fondecyt'].fillna(0, inplace=True)
+
+    # Eliminar columnas innecesarias
+    columnas_a_eliminar = [f'comb_{i}' for i in range(2, 13)]
     base_maestra_actualizada.drop(columns=columnas_a_eliminar, inplace=True, errors='ignore')
     proyectos_adicionales.drop(columns=columnas_a_eliminar, inplace=True, errors='ignore')
 
@@ -114,6 +87,11 @@ maestra = pd.read_excel(path_maestra)
 
 # Preprocesar la base ANID
 anid['NOMBRE_RESPONSABLE'] = anid['NOMBRE_RESPONSABLE'].apply(estandarizar_nombre)
+
+# Filtrar por criterios FONDECYT e INSTRUMENTO
+anid = anid[(anid['PROGRAMA'] == 'FONDECYT') &
+            (anid['INSTRUMENTO'].isin(['REGULAR', 'POSTDOCTORADO', 'INICIACION'])) &
+            (anid['AGNO_FALLO'].between(2014, 2024))]
 
 # Preprocesar la base maestra
 columnas_nombres = ['Primer_Nombre', 'Segundo_Nombre', 'Apellido_Paterno', 'Apellido_Materno']

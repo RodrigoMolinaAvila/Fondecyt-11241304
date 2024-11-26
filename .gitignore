@@ -49,16 +49,4 @@ build/
 # Ignorar el script scopus.py en cualquier ubicación
 Scopus.py
 
-# No ignorar el archivo maestra_procesada.xlsx en la carpeta Scopus
-!Scopus/maestra_procesada.xlsx
-
-!Scopus/scopus_resultados_beta.xlsx
-!Scopus/test_completo.xlsx
-
-!GSE_establecimientos/maestra_rbd.xlsx
-
-!base_maestra/base_maestra.xlsx
-
-!base_maestra/proyectos_consolidados_actualizados.xlsx
-
-!base_maestra/base_maestra_con_proyectos.xlsx
+Scopus/Scopus.py

@@ -2,8 +2,8 @@ import pandas as pd
 
 # List of CSV files to convert
 csv_files = [
-    r'C:\Users\Rodrigo\Desktop\Roxana Files\webscraping RBD\resultados_2iteracion.csv',
-    r'C:\Users\Rodrigo\Desktop\Roxana Files\webscraping RBD\resultados_1iteracion.csv'
+#    r'C:\Users\Rodrigo\Desktop\Roxana Files\webscraping RBD\resultados+dep1.csv',
+    r'C:\Users\Rodrigo\Desktop\Roxana Files\webscraping RBD\resultados.csv'
 ]
 
 # Convert each CSV file to XLSX
